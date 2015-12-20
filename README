@@ -1,0 +1,5 @@
+Чтобы собрать проект с помощью смэйка надо так: cmake -G "MinGW Makefiles" -DCMAKE_EXE_LINKER_FLAGS=-static
+потом mingw32-make
+это для винды для линукса не надо статика
+
+hist = log --pretty=format:\"%h %ad | %s%d [%an]\" --graph --date=short
