@@ -82,7 +82,7 @@ class Obj
 		glBufferData(GL_ELEMENT_ARRAY_BUFFER, indicess.size() * sizeof(unsigned short), &indicess[0] , GL_STATIC_DRAW);
 	}
 	
-	void Unload()
+	~Obj() //void Unload()
 	{
 		glDeleteBuffers(1, &vertexbuffer);
 		glDeleteBuffers(1, &uvbuffer);
@@ -321,7 +321,34 @@ class Obj
 		return true;
 	}
 	
-	void CreateBSphere(/**obj_type_ptr p_object*/)
+	bool CubeInFrustum( float x, float y, float z, float size )
+{
+   int p;
+ 
+   for( p = 0; p < 6; p++ )
+   {
+      if( frustum[p][0] * (x - size) + frustum[p][1] * (y - size) + frustum[p][2] * (z - size) + frustum[p][3] > 0 )
+         continue;
+      if( frustum[p][0] * (x + size) + frustum[p][1] * (y - size) + frustum[p][2] * (z - size) + frustum[p][3] > 0 )
+         continue;
+      if( frustum[p][0] * (x - size) + frustum[p][1] * (y + size) + frustum[p][2] * (z - size) + frustum[p][3] > 0 )
+         continue;
+      if( frustum[p][0] * (x + size) + frustum[p][1] * (y + size) + frustum[p][2] * (z - size) + frustum[p][3] > 0 )
+         continue;
+      if( frustum[p][0] * (x - size) + frustum[p][1] * (y - size) + frustum[p][2] * (z + size) + frustum[p][3] > 0 )
+         continue;
+      if( frustum[p][0] * (x + size) + frustum[p][1] * (y - size) + frustum[p][2] * (z + size) + frustum[p][3] > 0 )
+         continue;
+      if( frustum[p][0] * (x - size) + frustum[p][1] * (y + size) + frustum[p][2] * (z + size) + frustum[p][3] > 0 )
+         continue;
+      if( frustum[p][0] * (x + size) + frustum[p][1] * (y + size) + frustum[p][2] * (z + size) + frustum[p][3] > 0 )
+         continue;
+      return false;
+   }
+   return true;
+}
+	
+	void CreateBSphere()
 	{
 		glm::vec3 l_vector;
 		
@@ -354,37 +381,37 @@ class Obj
 		// Now get the 8 AABB vertex making some comparisons to get the 8 extreme vertices of the object
 		for (i=1; i<vert.size(); i++)
 		{
-			if (vert[i].x < aabb[0].x) aabb[0].x = vert[i].x;// + pos.x;
-			if (vert[i].y < aabb[0].y) aabb[0].y = vert[i].y;// + pos.y;
-			if (vert[i].z < aabb[0].z) aabb[0].z = vert[i].z;// + pos.z;
+			if (vert[i].x < aabb[0].x) aabb[0].x = vert[i].x;
+			if (vert[i].y < aabb[0].y) aabb[0].y = vert[i].y;
+			if (vert[i].z < aabb[0].z) aabb[0].z = vert[i].z;
 
-			if (vert[i].x > aabb[1].x) aabb[1].x = vert[i].x;// + pos.x;
-			if (vert[i].y < aabb[1].y) aabb[1].y = vert[i].y;// + pos.y;
-			if (vert[i].z < aabb[1].z) aabb[1].z = vert[i].z;// + pos.z;
+			if (vert[i].x > aabb[1].x) aabb[1].x = vert[i].x;
+			if (vert[i].y < aabb[1].y) aabb[1].y = vert[i].y;
+			if (vert[i].z < aabb[1].z) aabb[1].z = vert[i].z;
 
-			if (vert[i].x > aabb[2].x) aabb[2].x = vert[i].x;// + pos.x;
-			if (vert[i].y > aabb[2].y) aabb[2].y = vert[i].y;// + pos.y;
-			if (vert[i].z < aabb[2].z) aabb[2].z = vert[i].z;// + pos.z;
+			if (vert[i].x > aabb[2].x) aabb[2].x = vert[i].x;
+			if (vert[i].y > aabb[2].y) aabb[2].y = vert[i].y;
+			if (vert[i].z < aabb[2].z) aabb[2].z = vert[i].z;
 
-			if (vert[i].x < aabb[3].x) aabb[3].x = vert[i].x;// + pos.x;
-			if (vert[i].y > aabb[3].y) aabb[3].y = vert[i].y;// + pos.y;
-			if (vert[i].z < aabb[3].z) aabb[3].z = vert[i].z;// + pos.z;
+			if (vert[i].x < aabb[3].x) aabb[3].x = vert[i].x;
+			if (vert[i].y > aabb[3].y) aabb[3].y = vert[i].y;
+			if (vert[i].z < aabb[3].z) aabb[3].z = vert[i].z;
 
-			if (vert[i].x < aabb[4].x) aabb[4].x = vert[i].x;// + pos.x;
-			if (vert[i].y < aabb[4].y) aabb[4].y = vert[i].y;// + pos.y;
-			if (vert[i].z > aabb[4].z) aabb[4].z = vert[i].z;// + pos.z;
+			if (vert[i].x < aabb[4].x) aabb[4].x = vert[i].x;
+			if (vert[i].y < aabb[4].y) aabb[4].y = vert[i].y;
+			if (vert[i].z > aabb[4].z) aabb[4].z = vert[i].z;
 		
-			if (vert[i].x > aabb[5].x) aabb[5].x = vert[i].x;// + pos.x;
-			if (vert[i].y < aabb[5].y) aabb[5].y = vert[i].y;// + pos.y;
-			if (vert[i].z > aabb[5].z) aabb[5].z = vert[i].z;// + pos.z;
+			if (vert[i].x > aabb[5].x) aabb[5].x = vert[i].x;
+			if (vert[i].y < aabb[5].y) aabb[5].y = vert[i].y;
+			if (vert[i].z > aabb[5].z) aabb[5].z = vert[i].z;
 
-			if (vert[i].x > aabb[6].x) aabb[6].x = vert[i].x;// + pos.x;
-			if (vert[i].y > aabb[6].y) aabb[6].y = vert[i].y;// + pos.y;
-			if (vert[i].z > aabb[6].z) aabb[6].z = vert[i].z;// + pos.z;
+			if (vert[i].x > aabb[6].x) aabb[6].x = vert[i].x;
+			if (vert[i].y > aabb[6].y) aabb[6].y = vert[i].y;
+			if (vert[i].z > aabb[6].z) aabb[6].z = vert[i].z;
 
-			if (vert[i].x < aabb[7].x) aabb[7].x = vert[i].x;// + pos.x;
-			if (vert[i].y > aabb[7].y) aabb[7].y = vert[i].y;// + pos.y;
-			if (vert[i].z > aabb[7].z) aabb[7].z = vert[i].z;// + pos.z;	
+			if (vert[i].x < aabb[7].x) aabb[7].x = vert[i].x;
+			if (vert[i].y > aabb[7].y) aabb[7].y = vert[i].y;
+			if (vert[i].z > aabb[7].z) aabb[7].z = vert[i].z;	
 			
 		}
 		
@@ -454,10 +481,10 @@ void MapCubeToSphere( glm::vec3& vPosition )
 
 struct cube
 {
-	vector<glm::vec3> st_vert;
-	vector<glm::vec2> st_uv;
-	vector<glm::vec3> st_norm;
-	vector<unsigned short> st_indices;
+	std::vector<glm::vec3> st_vert;
+	std::vector<glm::vec2> st_uv;
+	std::vector<glm::vec3> st_norm;
+	std::vector<unsigned short> st_indices;
 	int size;
 	
 	bool operator+=( cube& that) {
@@ -475,7 +502,7 @@ struct cube
 		}
 		FOR(that.st_indices.size())
 		{
-			unsigned short test = that.st_indices[i] + size; //*size;
+			unsigned short test = that.st_indices[i] + that.size; //*size;
 			this->st_indices.push_back(test);
 		}
 		
@@ -484,13 +511,7 @@ struct cube
 	
 };
 
-cube CreatePlane(float radius, int s) //, int width, int height)
-													/**
-													std::vector<glm::vec3>& vert,
-													std::vector<glm::vec2>& uv,
-													std::vector<glm::vec3>& norm,
-													std::vector<unsigned short>& indis
-													)*/
+cube CreatePlane(float radius, int s)
 {
 	glm::vec3 vMinPosition( -1.0f, -1.0f, -1.0f );
 	
@@ -503,10 +524,6 @@ cube CreatePlane(float radius, int s) //, int width, int height)
 	
 	cube cub;
 	cub.size = s*s;
-	
-	///vert.reserve(width*height);
-	///norm.reserve(width*height);
-	///uv.reserve(width*height);
 	
 	for ( int y = 0; y < height; ++y )
 	{
@@ -564,14 +581,13 @@ cube CreatePlane(float radius, int s) //, int width, int height)
 		cub.st_indices.push_back(j);
 		cub.st_indices.push_back(j+s);
 		cub.st_indices.push_back(j+s-1);
-		//printf("Loading... %.1f%\n", (float)i*100.0f/(float)cub.st_vert.size());
 		j++;
 	}
 	
 	return cub;
 }
 
-cube CreateQuad(float width, float length) //glm::vec3 origin, glm::vec3 w, glm::vec3 len)
+cube CreateQuad(float width, float length)
 {
 	cube poly;
 	
@@ -606,9 +622,100 @@ cube CreateQuad(float width, float length) //glm::vec3 origin, glm::vec3 w, glm:
 	poly.st_uv.push_back(glm::vec2(1.0f, 1.0f));
 	poly.st_uv.push_back(glm::vec2(1.0f, 0.0f));
 	
-	poly.size = poly.st_indices.size()-1;
+	poly.size = poly.st_indices.size()-2;
 	
 	return poly;
+}
+
+cube CreateQuad(glm::vec3 origin, glm::vec3 w, glm::vec3 len)
+{
+	cube poly;
+	
+	//glm::vec3 origin(0.0f, 0.0f, 0.0f);
+	//glm::vec3 w(width, 0.0f, 0.0f);
+	//glm::vec3 len(0.0f, 0.0f, length);
+	
+	poly.st_vert.push_back(origin);
+	poly.st_vert.push_back(origin + len);
+	poly.st_vert.push_back(origin + len + w);
+	poly.st_vert.push_back(origin + w);
+	
+	glm::vec3 n = glm::normalize(glm::cross(len, w));
+	
+	FOR(poly.st_vert.size())
+	{
+		//glm::vec3 normal = glm::normalize(poly.st_vert[i]);
+		poly.st_norm.push_back(n);
+	}
+	
+	
+	poly.st_indices.push_back(0);
+	poly.st_indices.push_back(1);
+	poly.st_indices.push_back(2);
+	
+	poly.st_indices.push_back(0);
+	poly.st_indices.push_back(2);
+	poly.st_indices.push_back(3);
+	
+	poly.st_uv.push_back(glm::vec2(0.0f, 0.0f));
+	poly.st_uv.push_back(glm::vec2(0.0f, 1.0f));
+	poly.st_uv.push_back(glm::vec2(1.0f, 1.0f));
+	poly.st_uv.push_back(glm::vec2(1.0f, 0.0f));
+	
+	poly.size = poly.st_indices.size()-2;
+	
+	return poly;
+}
+
+cube CreateTerrain(glm::vec3 origin, glm::vec3 w, glm::vec3 len, int wCount, int lenCount)
+{
+	std::vector<cube> cub(wCount*lenCount); //cube cub[25]; // = CreateQuad(w, h);
+	
+	
+	
+	int k = 0;
+	FOR(wCount)
+	{
+		FOR_j(lenCount)
+		{	
+			w.x *= i;
+			w.y *= i;
+			w.z *= i;
+			
+			len.x *= j;
+			len.y *= j;
+			len.z *= j;
+			
+			origin += w; // + len;
+			origin += len;
+
+			cub[k] = CreateQuad(origin, w, len);
+			k++;
+		}
+	}
+	
+	printf("sizeof cub = %i\n", cub.size());
+	
+	for(int i = 1; i < cub.size(); i++)
+	{
+		cub[cub.size()-i-1] += cub[cub.size()-i];
+	}
+	
+	{
+	std::ofstream of;
+	of.open("cub_indeces.txt");
+	FOR(cub.size())
+	{
+		of << "cub[" << i << "]" << std::endl;
+		FOR_j(cub[i].st_indices.size())
+		{			
+			of << "st_indices = " << cub[i].st_indices[j] << std::endl;
+		}
+		of << std::endl;
+	}
+	}
+	
+	return cub[0];
 }
 
 cube CreateOcto(float radius)
