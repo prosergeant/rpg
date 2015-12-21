@@ -15,7 +15,7 @@
 #define FOR(a) for(int i = 0; i < a; i++)
 #define FOR_j(a) for(int j = 0; j < a; j++)
 #define FOR_d(j, a) for(j = 0; j < a; j++)
-#define FOR_s(q,w) for(int i = q; i < w; i++)
+#define FOR_s(q, w) for(int i = q; i < w; i++)
 
 // Include GLEW
 #include <GL/glew.h>
@@ -38,6 +38,7 @@ GLFWwindow* window;
 
 int w = 0, h = 0, chooseTex = 0, posX = 0, posY = 0, posZ = 0, shader_v = 0; 
 int tgm = 0, tcl = 0;
+int sphere_detail = 10;
 GLuint shader, billShader;
 GLuint CameraRight_worldspace_ID, 
 		CameraUp_worldspace_ID,
@@ -80,23 +81,6 @@ enum states {GAME, CONSOLE } st = GAME;
 int parse_ini_file(char* ini_name);
 void init();
 void billboard_draw(GLuint shader, float x, float y, float z);
-
-bool dist(int distt, glm::vec3 one)
-{
-	bool result = false;
-	int rdist = -distt;
-	if(one.x >= distt) result = true;
-	else if(one.x <= rdist) result = true;
-	
-	if(one.y >= distt) result = true;
-	else if(one.y <= rdist) result = true;
-	
-	if(one.z >= distt) result = true;
-	else if(one.z <= rdist) result = true;
-	
-	return result;
-}
-
 
 int main()
 {
@@ -192,7 +176,8 @@ int main()
 		
 	std::vector<Obj*> objs;
 	std::vector<Obj*>::iterator oIT;
-		
+	
+	/**
 	objs.push_back(	new Obj(0.0f, 0.0f, 0.0f,
 			vertices[0],
 			uvs[0], 	
@@ -201,9 +186,15 @@ int main()
 			Textures[0]));
 	
 	objs[0]->CreateLand(3000); //CreateAABB();
-	
-	cube cub;
-	cub = CreateSphere(100.0f, 10);
+	*/
+		
+	cube cub, plane;
+	cub = CreateSphere(100.0f, sphere_detail);
+	plane = CreateTerrain(glm::vec3(0.0f, 0.0f, 0.0f),
+						  glm::vec3(1.0f, 0.0f, 0.0f),
+					      glm::vec3(0.0f, 0.0f, 1.0f),
+					      5, 5);
+	//plane = CreateQuad(100.0f, 100.0f);
 	
 	objs.push_back(new Obj(300.0f, 0.0f, 300.0f,
 							cub.st_vert,
@@ -211,7 +202,34 @@ int main()
 							cub.st_norm,
 							cub.st_indices,
 							Textures[0]));
+							
+	objs.push_back(new Obj(0.0f, -15.0f, 0.0f,
+							plane.st_vert,
+							plane.st_uv,
+							plane.st_norm,
+							plane.st_indices,
+							Textures[0]));						
+	/**
 	
+	
+	objs[objs.size() - 1]->CreateLand(10);
+	objs[objs.size() - 1]->CreateBSphere();
+	
+	printf("bsphere_center.x = %f\nbsphere_center.y = %f\nbsphere_center.z = %f\n",
+			objs[objs.size() - 1]->bsphere_center.x,
+			objs[objs.size() - 1]->bsphere_center.y,
+			objs[objs.size() - 1]->bsphere_center.z);
+	
+	FOR(8)
+	{
+		printf("bb.%i.x = %f\n", i+1, objs[objs.size() - 1]->aabb[i].x);
+		printf("bb.%i.y = %f\n", i+1, objs[objs.size() - 1]->aabb[i].y);
+		printf("bb.%i.z = %f\n\n", i+1, objs[objs.size() - 1]->aabb[i].z);
+	}
+	
+	printf("bsphere_radius = %f\n", objs[objs.size() - 1]->bsphere_radius);
+	printf("Sphere_bsphere_radius = %f\n", objs[objs.size() - 2]->bsphere_radius);
+	*/	
 	
 	position = glm::vec3(posX, posY, posZ);
 	verticalAngle = vertAngle;
@@ -299,7 +317,7 @@ int main()
 			catch(const std::range_error& e)
 			{
 				std::cout << "Trying to remove " << ix << " from " << objs.size() << std::endl;
-				std::cout << "Objs vector - out of range(" << e.what() << ")" << std::endl;
+				std::cout << "Objs vector - range_error(" << e.what() << ")" << std::endl;
 			}
 			
 			rm = false;
@@ -310,12 +328,13 @@ int main()
 		{
 			Obj *a = *oIT;
 			
-			glm::vec3 distt = a->pos - position;
-
+			glm::vec3 dist_v3 = a->pos - position;
+			float dist_f = glm::length(dist_v3);
+			
 			a->ExtractFrustum();
 			a->CreateBSphere();
 
-			if(a->SphereInFrustum(a->pos.x, a->pos.y, a->pos.z, a->bsphere_radius) && dist(a->bsphere_radius + 10000, distt) == false)
+			if(a->SphereInFrustum(a->pos.x, a->pos.y, a->pos.z, a->bsphere_radius) && dist_f <= 1000)
 			{
 				tcl++;
 				a->DrawAt(a->pos.x, a->pos.y, a->pos.z);
@@ -508,6 +527,11 @@ int parse_ini_file(char * ini_name)
 	printf("Shader version = %i\n", shader_v);
 	#endif
 	
+	sphere_detail = iniparser_getint(ini, "Level:detail", -1);
+	#ifdef DEBUG
+	printf("detail = %i\n", sphere_detail);
+	#endif
+	
     iniparser_freedict(ini);
     return 0 ;
 }
@@ -531,9 +555,9 @@ void init()
 		indices.push_back(indicess);
 		}
 	}
-	catch(exception& e)
+	catch(std::exception& e)
 	{
-		std::cout << e.what() << endl;
+		std::cout << e.what() << std::endl;
 	}
 	
 	shader = LoadShaders( "StandardShading.vertexshader", "StandardShading.fragmentshader" );
