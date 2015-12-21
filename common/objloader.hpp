@@ -41,7 +41,7 @@ bool loadAssImp(
 // - More secure. Change another line and you can inject code.
 // - Loading from memory, stream, etc
 
-class err1 : public exception
+class err1 : public std::exception
 {
 	virtual const char* what() const throw()
 	{
