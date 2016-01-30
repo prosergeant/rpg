@@ -19,7 +19,8 @@ class Obj
 	glm::vec3 force;
 	glm::vec3 size;
 	glm::vec3 wid;
-	float Rx, Ry, Rz;
+	glm::vec3 dd;
+	int type;
 	float frustum[6][4];
 	float bsphere_radius;
 	glm::vec3 rot;
@@ -53,6 +54,8 @@ class Obj
 		rot.x = 0.0f;
 		rot.y = 0.0f;
 		rot.z = 0.0f;
+		
+		dd.x = dd.y = dd.z = 0.0f;
 	
 		shaderr = shader;
 		
@@ -468,6 +471,360 @@ class Obj
 	
 };
 
+float PlaneDistance(glm::vec3 Normal, glm::vec3 Point)
+{	
+	float distance = 0;
+	
+	distance = - ((Normal.x * Point.x) + (Normal.y * Point.y) + (Normal.z * Point.z));
+
+	return distance;
+}
+
+bool IntersectedPlane(glm::vec3 vPoly[], glm::vec3 vLine[], glm::vec3 &vNormal, float &originDistance)
+{
+	float distance1=0, distance2=0;						// The distances from the 2 points of the line from the plane
+		
+	vNormal = glm::normalize(glm::cross(vPoly[2] - vPoly[0], vPoly[1] - vPoly[0]));
+
+	//vNormal = Normal(vPoly);
+	
+	originDistance = PlaneDistance(vNormal, vPoly[0]);
+
+	distance1 = ((vNormal.x * vLine[0].x)  +					// Ax +
+		         (vNormal.y * vLine[0].y)  +					// Bx +
+				 (vNormal.z * vLine[0].z)) + originDistance;	// Cz + D
+		
+	distance2 = ((vNormal.x * vLine[1].x)  +					// Ax +
+		         (vNormal.y * vLine[1].y)  +					// Bx +
+				 (vNormal.z * vLine[1].z)) + originDistance;	// Cz + D
+
+	if(distance1 * distance2 >= 0)			// Check to see if both point's distances are both negative or both positive
+	   return false;						// Return false if each point has the same sign.  -1 and 1 would mean each point is on either side of the plane.  -1 -2 or 3 4 wouldn't...
+					
+	return true;							// The line intersected the plane, Return TRUE
+}
+
+double AngleBetweenVectors(glm::vec3 Vector1, glm::vec3 Vector2)
+{							
+	float dotProduct = glm::dot(Vector1, Vector2);				
+
+	float vectorsMagnitude = glm::length(Vector1) * glm::length(Vector2);
+
+	double angle = acos( dotProduct / vectorsMagnitude );
+
+	if(_isnan(angle))
+		return 0;
+	
+	return( angle );
+}
+											
+glm::vec3 IntersectionPoint(glm::vec3 vNormal, glm::vec3 vLine[], double distance)
+{
+	glm::vec3 vPoint;
+	glm::vec3 vLineDir;
+	double Numerator = 0.0, Denominator = 0.0, dist = 0.0;
+	
+	vLineDir = vLine[1] - vLine[0];
+	vLineDir = glm::normalize(vLineDir);
+
+	Numerator = - (vNormal.x * vLine[0].x +
+				   vNormal.y * vLine[0].y +
+				   vNormal.z * vLine[0].z + distance);
+
+	Denominator = glm::dot(vNormal, vLineDir);
+				  
+	if( Denominator == 0.0)						// Check so we don't divide by zero
+		return vLine[0];						// Return an arbitrary point on the line
+
+	dist = Numerator / Denominator;				// Divide to get the multiplying (percentage) factor
+	
+	vPoint.x = (float)(vLine[0].x + (vLineDir.x * dist));
+	vPoint.y = (float)(vLine[0].y + (vLineDir.y * dist));
+	vPoint.z = (float)(vLine[0].z + (vLineDir.z * dist));
+
+	return vPoint;								// Return the intersection point
+}
+
+bool InsidePolygon(glm::vec3 vIntersection, glm::vec3 Poly[], long verticeCount)
+{
+	const double MATCH_FACTOR = 0.9999;		// Used to cover up the error in floating point
+	double Angle = 0.0;						// Initialize the angle
+	glm::vec3 vA, vB;						// Create temp vectors
+	
+	for (int i = 0; i < verticeCount; i++)		// Go in a circle to each vertex and get the angle between
+	{	
+		vA = Poly[i] - vIntersection;	// Subtract the intersection point from the current vertex
+												// Subtract the point from the next vertex
+		vB = Poly[(i + 1) % verticeCount] - vIntersection;
+												
+		Angle += AngleBetweenVectors(vA, vB);	// Find the angle between the 2 vectors and add them all up as we go along
+	}
+										
+	if(Angle >= (MATCH_FACTOR * (2.0 * PI)) )	// If the angle is greater than 2 PI, (360 degrees)
+		return true;							// The point is inside of the polygon
+		
+	return false;								// If you get here, it obviously wasn't inside the polygon, so Return FALSE
+}
+
+
+bool IntersectedPolygon(glm::vec3 vPoly[], glm::vec3 vLine[], int verticeCount)
+{
+	glm::vec3 vNormal;
+	float originDistance = 0;
+
+	if(!IntersectedPlane(vPoly, vLine, vNormal, originDistance))
+		return false;
+
+	glm::vec3 vIntersection = IntersectionPoint(vNormal, vLine, originDistance);
+
+	if(InsidePolygon(vIntersection, vPoly, verticeCount))
+		return true;							// We collided!	  Return success
+
+	return false;								// There was no collision, so return false
+}
+
+bool IntersectedPlane(glm::vec3 vTriangle[], glm::vec3 vLine[])
+{
+	float distance1=0, distance2=0;						// The distances from the 2 points of the line from the plane
+			
+	glm::vec3 vNormal = glm::normalize(glm::cross(vTriangle[2] - vTriangle[0], vTriangle[1] - vTriangle[0]));				 // We need to get the normal of our plane to go any further
+
+	float originDistance = PlaneDistance(vNormal, vTriangle[0]);
+
+	distance1 = ((vNormal.x * vLine[0].x)  +					// Ax +
+		         (vNormal.y * vLine[0].y)  +					// Bx +
+				 (vNormal.z * vLine[0].z)) + originDistance;	// Cz + D
+
+	distance2 = ((vNormal.x * vLine[1].x)  +					// Ax +
+		         (vNormal.y * vLine[1].y)  +					// Bx +
+				 (vNormal.z * vLine[1].z)) + originDistance;	// Cz + D
+
+	if(distance1 * distance2 >= 0)			// Check to see if both point's distances are both negative or both positive
+	   return false;						// Return false if each point has the same sign.  -1 and 1 would mean each point is on either side of the plane.  -1 -2 or 3 4 wouldn't...
+					
+	return true;							// The line intersected the plane, Return TRUE
+}
+
+
+bool checkCollObjCam(Obj* o)
+{
+	bool coll = false;
+	
+	for(int i = 0; i < o->vert.size(); i += 3)
+	{
+		glm::vec3 temp[3] = { o->vert[i], o->vert[i+1], o->vert[i+2] };
+		
+		glm::vec3 temp_l = position; temp_l.x += 10.0f;
+		
+		glm::vec3 line[2] = { position, temp_l }; //position + glm::normalize(g_direction) + 5.0f };
+		
+		coll = IntersectedPolygon(temp, line, 3);
+		
+		if(coll)
+		{
+			//printf("collide\n");
+			position.x -= g_direction.x * g_deltaTime * speed + fabs(o->dd.x);
+			position.z -= g_direction.z * g_deltaTime * speed + fabs(o->dd.z);
+		}
+		
+		coll = false;
+		
+		//if(coll == true) break;
+	}
+	
+	
+	
+	/**
+	float dist_f = glm::length(o->pos - position);
+
+	if(dist_f < (o->bsphere_radius+p_radius))
+	{
+		position.x -= g_direction.x * g_deltaTime * speed + fabs(o->dd.x);
+		position.z -= g_direction.z * g_deltaTime * speed + fabs(o->dd.z);
+	}
+	*/
+	
+}
+
+void testColl(Obj* o) {
+	//for (int i = 0; i < ; i++) {
+		if (position.x > o->pos.x - 0.01f
+				&& position.x < o->pos.x + 0.02f
+				&& position.y > o->pos.y
+				&& position.y < o->pos.y + 0.1f
+				&& position.z > o->pos.z
+				&& position.z < o->pos.z + 0.1f) {
+			position.x = o->pos.x - 0.01f;
+
+		}
+		if (position.x < o->pos.x + 0.11f
+				&& position.x > o->pos.x + 0.08f
+				&& position.y > o->pos.y
+				&& position.y < o->pos.y + 0.1f
+				&& position.z > o->pos.z
+				&& position.z < o->pos.z + 0.1f) {
+			position.x = o->pos.x + 0.11f;
+
+		}
+		if (position.y > o->pos.y - 0.01f
+				&& position.y < o->pos.y + 0.02f
+				&& position.x > o->pos.x
+				&& position.x < o->pos.x + 0.1f
+				&& position.z > o->pos.z
+				&& position.z < o->pos.z + 0.1f) {
+			position.y = o->pos.y - 0.01f;
+
+		}
+		if (position.y < o->pos.y + 0.11f
+				&& position.y > o->pos.y + 0.08f
+				&& position.x > o->pos.x
+				&& position.x < o->pos.x + 0.1f
+				&& position.z > o->pos.z
+				&& position.z < o->pos.z + 0.1f) {
+			position.y = o->pos.y + 0.11f;
+
+		}
+		if (position.z > o->pos.z - 0.01f
+				&& position.z < o->pos.z + 0.02f
+				&& position.x > o->pos.x
+				&& position.x < o->pos.x + 0.1f
+				&& position.y > o->pos.y
+				&& position.y < o->pos.y + 0.1f) {
+			position.z = o->pos.z - 0.01f;
+		}
+		if (position.z < o->pos.z + 0.15f
+				&& position.z > o->pos.z + 0.08f
+				&& position.x > o->pos.x
+				&& position.x < o->pos.x + 0.1f
+				&& position.y > o->pos.y
+				&& position.y < o->pos.y + 0.1f) {
+			position.z = o->pos.z + 0.15f;
+				//touch = true;
+		//} else if(i == (int)(Math.random()*numblocks)) {
+			//touch = false;
+		}
+		
+		//if(position.y > 0.1f) position.x = 0.0f; 
+		
+	//}
+	//return position;
+}
+
+bool AABBCheck(Obj* o)
+{
+    //return !(b1.x + b1.w < b2.x || b1.x > b2.x + b2.w || b1.y + b1.h < b2.y || b1.y > b2.y + b2.h);
+	return !(o->aabb[1].x < position.x - 1.0f ||
+			 o->aabb[0].x > position.x + 1.0f ||
+			 o->aabb[4].z < position.z - 1.0f ||
+			 o->aabb[0].z > position.z + 1.0f ||
+			 o->aabb[3].y < position.y - 1.0f ||
+			 o->aabb[0].y > position.y + 1.0f );
+}
+
+void testColl2(Obj* o)
+{
+	//printf("g_dir = %i\n\n", g_dir);
+	if(AABBCheck(o) == true)
+	{
+		bool dirs = true;
+		if(position.y > o->aabb[3].y)
+		{
+			ground = o->aabb[3].y + 1.0f + fabs(o->dd.y);
+			//position.y = ground;
+			dirs = false;
+		}
+		if(dirs)
+		{
+			
+			if (glfwGetKey( window, GLFW_KEY_W ) == GLFW_PRESS){
+				position.x -= g_direction.x * g_deltaTime * speed + fabs(o->dd.x);// + 0.05f;
+				position.z -= g_direction.z * g_deltaTime * speed + fabs(o->dd.z);// + 0.05f;
+				
+				if(position.x > o->aabb[1].x)
+					position.x += 0.05f;
+				else if(position.x < o->aabb[0].x)
+					position.x -= 0.05f;
+				
+				if(position.z > o->aabb[4].z)
+					position.z += 0.05f;
+				else if(position.z < o->aabb[0].z)
+					position.z -= 0.05f;
+			}
+			
+			if (glfwGetKey( window, GLFW_KEY_S ) == GLFW_PRESS){
+				position.x += g_direction.x * g_deltaTime * speed + fabs(o->dd.x);// - 0.05f;
+				position.z += g_direction.z * g_deltaTime * speed + fabs(o->dd.z);// - 0.05f;
+				
+				if(position.x > o->aabb[1].x)
+					position.x += 0.05f;
+				else if(position.x < o->aabb[0].x)
+					position.x -= 0.05f;
+				
+				if(position.z > o->aabb[4].z)
+					position.z += 0.05f;
+				else if(position.z < o->aabb[0].z)
+					position.z -= 0.05f;
+			}
+			
+			if (glfwGetKey( window, GLFW_KEY_D ) == GLFW_PRESS){
+				position.x -= g_right.x 	* g_deltaTime * speed + fabs(o->dd.x);// + 0.05f;
+				position.z -= g_right.z 	* g_deltaTime * speed + fabs(o->dd.z);// + 0.05f;
+				
+				if(position.x > o->aabb[1].x)
+					position.x += 0.05f;
+				else if(position.x < o->aabb[0].x)
+					position.x -= 0.05f;
+				
+				if(position.z > o->aabb[4].z)
+					position.z += 0.05f;
+				else if(position.z < o->aabb[0].z)
+					position.z -= 0.05f;
+			}
+			
+			if (glfwGetKey( window, GLFW_KEY_A ) == GLFW_PRESS){
+				position.x += g_right.x 	* g_deltaTime * speed + fabs(o->dd.x);// - 0.05f;
+				position.z += g_right.z 	* g_deltaTime * speed + fabs(o->dd.z);// - 0.05f;
+				
+				if(position.x > o->aabb[1].x)
+					position.x += 0.05f;
+				else if(position.x < o->aabb[0].x)
+					position.x -= 0.05f;
+				
+				if(position.z > o->aabb[4].z)
+					position.z += 0.05f;
+				else if(position.z < o->aabb[0].z)
+					position.z -= 0.05f;
+			}
+			/**
+		switch(g_dir)
+		{		
+		case UP:
+			position.x -= g_direction.x * g_deltaTime * speed + fabs(o->dd.x);
+			position.z -= g_direction.z * g_deltaTime * speed + fabs(o->dd.z);
+			break;
+			
+		case RIGHT:
+			position.x -= g_right.x 	* g_deltaTime * speed + fabs(o->dd.x);
+			position.z -= g_right.z 	* g_deltaTime * speed + fabs(o->dd.z);
+			break;
+			
+		case DOWN:
+			position.x += g_direction.x * g_deltaTime * speed + fabs(o->dd.x);
+			position.z += g_direction.z * g_deltaTime * speed + fabs(o->dd.z);
+			break;
+			
+		case LEFT:
+			position.x += g_right.x 	* g_deltaTime * speed + fabs(o->dd.x);
+			position.z += g_right.z 	* g_deltaTime * speed + fabs(o->dd.z);
+			break;
+		}
+		*/
+		}
+	}
+	else
+		ground = 0.0f;
+}
+
 void MapCubeToSphere( glm::vec3& vPosition )
 {
     float x2 = vPosition.x * vPosition.x;
@@ -678,18 +1035,24 @@ cube CreateTerrain(glm::vec3 origin, glm::vec3 w, glm::vec3 len, int wCount, int
 	{
 		FOR_j(lenCount)
 		{	
-			w.x *= i;
-			w.y *= i;
-			w.z *= i;
+			/**
 			
-			len.x *= j;
-			len.y *= j;
-			len.z *= j;
+			*/
+			glm::vec3 a, w2 = w, len2 = len;
 			
-			origin += w; // + len;
-			origin += len;
+			w2.x *= i;
+			w2.y *= i;
+			w2.z *= i;
+			
+			len2.x *= j;
+			len2.y *= j;
+			len2.z *= j;
+			
+			a = len2;
+			a += w2;
+			a += origin;
 
-			cub[k] = CreateQuad(origin, w, len);
+			cub[k] = CreateQuad(a, w, len);
 			k++;
 		}
 	}
