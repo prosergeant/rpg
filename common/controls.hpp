@@ -37,14 +37,24 @@ float verticalAngle = 0.0f;
 // Initial Field of View
 float initialFoV = 45.0f;
 
+enum { UP, RIGHT, DOWN, LEFT, UR, DR, DL, UL };
+
 float iy = 0.0f;
 float speed = 30.0f; // 3 units / second
 float mouseSpeed = 0.004f;
+float g_deltaTime;
+float ground = 0.0f;
+
+int g_dir;
+
+glm::vec3 g_direction;
+glm::vec3 g_right;
 
 bool onGround = false;
 bool sp = false;
 bool qp = false;
 bool wire = false;
+bool test = false;
 
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 {
@@ -102,26 +112,60 @@ void computeMatricesFromInputs(){
 
 	*/
 	position.y += iy * deltaTime;
-	if(position.y > 0.0f ) { iy -= 1.11f * deltaTime; } 
-	if(position.y <= 0.0f) { position.y = 0.0f; onGround = true; iy = 0.0f; }
+	if(position.y > ground ) { iy -= 2.11f * deltaTime; } 
+	if(position.y <= ground) { position.y = ground; onGround = true; iy = 0.0f; }
+	
+	if (glfwGetKey( window, GLFW_KEY_E ) == GLFW_PRESS){
+		test = true;
+	}
+	if(glfwGetKey(window, GLFW_KEY_E) == GLFW_RELEASE) test = false;
+	
 	// Move forward
 	if (glfwGetKey( window, GLFW_KEY_W ) == GLFW_PRESS){
+		if(g_dir == RIGHT)
+			g_dir = UR;
+		else if(g_dir == LEFT)
+			g_dir = UL;
+		else
+			g_dir = UP;
+			
 		position.z += direction.z * deltaTime * speed;
 		position.x += direction.x * deltaTime * speed;
 		///position += direction * deltaTime * speed;
 	}
 	// Move backward
 	if (glfwGetKey( window, GLFW_KEY_S ) == GLFW_PRESS){
+		if(g_dir == RIGHT)
+			g_dir = DR;
+		else if(g_dir == LEFT)
+			g_dir = DL;
+		else
+			g_dir = DOWN;
+		
 		position.z -= direction.z * deltaTime * speed;
 		position.x -= direction.x * deltaTime * speed;
 		///position -= direction * deltaTime * speed;
 	}
 	// Strafe right
 	if (glfwGetKey( window, GLFW_KEY_D ) == GLFW_PRESS){
+		if(g_dir == UP)
+			g_dir = UR;
+		else if(g_dir == DOWN)
+			g_dir = DR;
+		else
+			g_dir = RIGHT;
+		
 		position += right * deltaTime * speed;
 	}
 	// Strafe left
 	if (glfwGetKey( window, GLFW_KEY_A ) == GLFW_PRESS){
+		if(g_dir == UP)
+			g_dir = UL;
+		else if(g_dir == DOWN)
+			g_dir = DL;
+		else
+			g_dir = LEFT;
+		
 		position -= right * deltaTime * speed;
 	}
 	// Move Up
@@ -181,4 +225,8 @@ void computeMatricesFromInputs(){
 
 	// For the next frame, the "last time" will be "now"
 	lastTime = currentTime;
+	g_deltaTime = deltaTime;
+	g_direction = direction;
+	g_right = right;
 }
+
