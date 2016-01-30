@@ -1,4 +1,4 @@
-// v 0.0.9
+// v 0.1.0
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
@@ -16,6 +16,7 @@
 #define FOR_j(a) for(int j = 0; j < a; j++)
 #define FOR_d(j, a) for(j = 0; j < a; j++)
 #define FOR_s(q, w) for(int i = q; i < w; i++)
+#define PI 3.141592652
 
 // Include GLEW
 #include <GL/glew.h>
@@ -53,6 +54,7 @@ GLfloat g_vertex_buffer_data[] = {
 		  0.5f,  0.5f, 0.0f
 	};
 float vertAngle = 0, horAngle = 0;
+float p_radius = 5.0f;
 std::string model_path = "", title = "Default", font;
 
 std::vector<std::vector<glm::vec3> > vertices;
@@ -81,6 +83,12 @@ enum states {GAME, CONSOLE } st = GAME;
 int parse_ini_file(char* ini_name);
 void init();
 void billboard_draw(GLuint shader, float x, float y, float z);
+
+int map[5][5] = {{0,0,0,0,0},
+				 {0,1,1,1,0},
+				 {0,1,1,1,0},
+				 {0,1,1,1,0},
+				 {0,0,0,0,0}};
 
 int main()
 {
@@ -173,7 +181,7 @@ int main()
 	glBufferData(GL_ARRAY_BUFFER, sizeof(g_vertex_buffer_data), g_vertex_buffer_data, GL_DYNAMIC_DRAW);
 	
 	init();	
-		
+	
 	std::vector<Obj*> objs;
 	std::vector<Obj*>::iterator oIT;
 	
@@ -187,14 +195,19 @@ int main()
 	
 	objs[0]->CreateLand(3000); //CreateAABB();
 	*/
+	
+	objs.push_back( new Obj(500.0f, -15.0f, 15.0f,
+							vertices[1],
+							uvs[1],
+							normals[1],
+							indices[1],
+							Textures[0]));
+	objs[objs.size()-1]->size = glm::vec3(0.05f, 0.05f, 0.05f);
+	objs[objs.size()-1]->type = 1;
 		
-	cube cub, plane;
+	cube cub, cub2;
 	cub = CreateSphere(100.0f, sphere_detail);
-	plane = CreateTerrain(glm::vec3(0.0f, 0.0f, 0.0f),
-						  glm::vec3(1.0f, 0.0f, 0.0f),
-					      glm::vec3(0.0f, 0.0f, 1.0f),
-					      5, 5);
-	//plane = CreateQuad(100.0f, 100.0f);
+	cub2 = CreateSphere(43.3f, 2);
 	
 	objs.push_back(new Obj(300.0f, 0.0f, 300.0f,
 							cub.st_vert,
@@ -202,35 +215,33 @@ int main()
 							cub.st_norm,
 							cub.st_indices,
 							Textures[0]));
-							
-	objs.push_back(new Obj(0.0f, -15.0f, 0.0f,
-							plane.st_vert,
-							plane.st_uv,
-							plane.st_norm,
-							plane.st_indices,
-							Textures[0]));						
-	/**
 	
-	
-	objs[objs.size() - 1]->CreateLand(10);
-	objs[objs.size() - 1]->CreateBSphere();
-	
-	printf("bsphere_center.x = %f\nbsphere_center.y = %f\nbsphere_center.z = %f\n",
-			objs[objs.size() - 1]->bsphere_center.x,
-			objs[objs.size() - 1]->bsphere_center.y,
-			objs[objs.size() - 1]->bsphere_center.z);
-	
-	FOR(8)
+	for(int i = 0; i < 5; i++)
 	{
-		printf("bb.%i.x = %f\n", i+1, objs[objs.size() - 1]->aabb[i].x);
-		printf("bb.%i.y = %f\n", i+1, objs[objs.size() - 1]->aabb[i].y);
-		printf("bb.%i.z = %f\n\n", i+1, objs[objs.size() - 1]->aabb[i].z);
+		for(int j = 0; j < 5; j++)
+		{
+			if(map[i][j] == 0)
+			{
+				objs.push_back(new Obj(50.0f*j, 0.0f, 50.0f*i,
+							cub2.st_vert,
+							cub2.st_uv,
+							cub2.st_norm,
+							cub2.st_indices,
+							Textures[0]));
+			}
+			
+			if(map[i][j] == 1)
+			{
+				objs.push_back(new Obj(50.0f*j, -50.0f, 50.0f*i,
+							cub2.st_vert,
+							cub2.st_uv,
+							cub2.st_norm,
+							cub2.st_indices,
+							Textures[0]));
+			}
+		}
 	}
-	
-	printf("bsphere_radius = %f\n", objs[objs.size() - 1]->bsphere_radius);
-	printf("Sphere_bsphere_radius = %f\n", objs[objs.size() - 2]->bsphere_radius);
-	*/	
-	
+								
 	position = glm::vec3(posX, posY, posZ);
 	verticalAngle = vertAngle;
 	horizontalAngle = horAngle;
@@ -324,36 +335,54 @@ int main()
 		}
 		
 		tcl = 0;
+		
+		if(test)
+			objs[0]->dd.z = -(speed/2 * g_deltaTime);
+		
+		if(!test)
+			objs[0]->dd.z = 0.0f;
+		
 		for(oIT = objs.begin(); oIT != objs.end(); oIT++)
 		{
 			Obj *a = *oIT;
+			
+			a->pos += a->dd;
+			
+			testColl2(a); //checkCollObjCam(a);
 			
 			glm::vec3 dist_v3 = a->pos - position;
 			float dist_f = glm::length(dist_v3);
 			
 			a->ExtractFrustum();
 			a->CreateBSphere();
-
+			
+			if(a->type == 1)
+			{		
+				glm::vec3 tempUp = glm::cross(g_direction, g_right);
+				a->pos = position + (g_direction*8.0f + g_right*4.0f) + (tempUp*2.0f);
+				a->rot *= position; //g_direction;
+			}
+			
 			if(a->SphereInFrustum(a->pos.x, a->pos.y, a->pos.z, a->bsphere_radius) && dist_f <= 1000)
 			{
 				tcl++;
 				a->DrawAt(a->pos.x, a->pos.y, a->pos.z);
 				
-				glEnable(GL_BLEND);
-				glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
-				FOR(8)
+				//glEnable(GL_BLEND);
+				//glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
+				//FOR(8)
 				{
-					billboard_draw(billShader,a->aabb[i].x,a->aabb[i].y,a->aabb[i].z);
+				//	billboard_draw(billShader,a->aabb[i].x,a->aabb[i].y,a->aabb[i].z);
 				}
-				glDisable(GL_BLEND);
+				//glDisable(GL_BLEND);
 			}
-			else
+			/*else
 			{
 				glEnable(GL_BLEND);
 				glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
 				billboard_draw(billShader, a->pos.x, a->pos.y, a->pos.z);
 				glDisable(GL_BLEND);
-			}
+			}*/
 		}
 		
 		//char text[256];
@@ -427,7 +456,12 @@ int parse_ini_file(char * ini_name)
     iniparser_dump(ini, stderr);
 	
 	char* path;
-
+	
+	p_radius = iniparser_getdouble(ini, "Level:p_rad", -1.0);
+	#ifdef DEBUG
+	printf("p_radius = %f\n", p_radius);
+	#endif
+	
 	vertAngle = iniparser_getdouble(ini, "Player:vertAngle", -1.0);
 	#ifndef _WIN32
 	vertAngle -= 3.07f;
@@ -539,13 +573,19 @@ int parse_ini_file(char * ini_name)
 
 void init()
 {
+	std::vector<unsigned short> indicess;
+	std::vector<glm::vec3> indexed_vertices;
+	std::vector<glm::vec2> indexed_uvs;
+	std::vector<glm::vec3> indexed_normals;
+		
 	try
-	{
+	{	
 		FOR(model_p.size()){
-		std::vector<unsigned short> indicess;
-		std::vector<glm::vec3> indexed_vertices;
-		std::vector<glm::vec2> indexed_uvs;
-		std::vector<glm::vec3> indexed_normals;
+			
+		indicess.clear();
+		indexed_vertices.clear();
+		indexed_uvs.clear();
+		indexed_normals.clear();
 		
 		loadOBJ(model_p[i].c_str(), indexed_vertices, indexed_uvs, indexed_normals, indicess);
 		
