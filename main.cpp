@@ -47,6 +47,9 @@ GLuint CameraRight_worldspace_ID,
 		BillboardPosID,
 		BillboardSizeID,
 		billboard_vertex_buffer;
+
+GLuint viewPosID;
+
 GLfloat g_vertex_buffer_data[] = { 
 		 -0.5f, -0.5f, 0.0f,
 		  0.5f, -0.5f, 0.0f,
@@ -79,16 +82,25 @@ enum states {GAME, CONSOLE } st = GAME;
 #include <common/text2D.hpp>
 #include "commands.hpp"
 #include <common/obj.hpp>
+#include <common/weapon.hpp>
 
 int parse_ini_file(char* ini_name);
 void init();
 void billboard_draw(GLuint shader, float x, float y, float z);
 
-int map[5][5] = {{0,0,0,0,0},
-				 {0,1,1,1,0},
-				 {0,1,1,1,0},
-				 {0,1,1,1,0},
-				 {0,0,0,0,0}};
+int map[10][10] = 
+				{
+				{0,0,0,0,0,0,0,0,0,0},
+				{0,1,1,1,0,1,1,1,1,0},
+				{0,1,1,1,1,1,1,0,1,0},
+				{0,1,1,1,1,1,1,0,1,0},
+				{0,0,0,0,1,0,0,0,0,0},
+				{0,1,1,1,1,1,1,1,1,0},
+				{0,1,1,1,1,1,0,1,1,0},
+				{0,1,1,1,1,1,0,1,1,0},
+				{0,1,1,1,1,1,0,1,1,0},
+				{0,1,0,0,0,0,0,0,0,0}				
+				};
 
 int main()
 {
@@ -153,8 +165,6 @@ int main()
 	glfwSetCursorPos(window, w/2, h/2);
 	glfwSetScrollCallback(window, scroll_callback);
 
-	
-
 	glClearColor(0.0f, 0.0f, 0.4f, 0.0f);
 
 	glEnable(GL_DEPTH_TEST);
@@ -185,6 +195,8 @@ int main()
 	std::vector<Obj*> objs;
 	std::vector<Obj*>::iterator oIT;
 	
+	Weapon* weapon = new Weapon(1);
+	
 	/**
 	objs.push_back(	new Obj(0.0f, 0.0f, 0.0f,
 			vertices[0],
@@ -205,40 +217,63 @@ int main()
 	objs[objs.size()-1]->size = glm::vec3(0.05f, 0.05f, 0.05f);
 	objs[objs.size()-1]->type = 1;
 		
-	cube cub, cub2;
-	cub = CreateSphere(100.0f, sphere_detail);
-	cub2 = CreateSphere(43.3f, 2);
+	cube cub, plane;
+	cub = CreateSphere(43.3f, 2);
 	
-	objs.push_back(new Obj(300.0f, 0.0f, 300.0f,
+	plane = CreateTerrain(glm::vec3(0.0f, 0.0f, 0.0f),
+						  glm::vec3(50.0f*1.0f, 0.0f, 0.0f),
+						  glm::vec3(0.0f, 0.0f, 50.0f*1.0f),
+						  10, 10);
+	
+	objs.push_back(new Obj(0.0f, -25.0f, 0.0f,
+				   plane.st_vert,
+				   plane.st_uv,
+				   plane.st_norm,
+				   plane.st_indices,
+				   Textures[0]));
+				   
+	FOR(plane.st_norm.size())
+	{
+		printf("[%i].y = %f\n", i, plane.st_norm[i].y);
+		plane.st_norm[i].y = 1;
+		printf("after [%i].y = %f\n", i, plane.st_norm[i].y);
+	}
+				   
+	objs.push_back(new Obj(0.0f, 25.0f, 0.0f,
+				   plane.st_vert,
+				   plane.st_uv,
+				   plane.st_norm,
+				   plane.st_indices,
+				   Textures[0]));
+				   
+	objs[objs.size()-1]->type = 2;
+	objs[objs.size()-2]->type = 2;
+	
+	
+	for(int i = 0; i < 10; i++)
+	{
+		for(int j = 0; j < 10; j++)
+		{
+			if(map[i][j] == 0)
+			{
+				objs.push_back(new Obj(50.0f*j, 0.0f, 50.0f*i,
 							cub.st_vert,
 							cub.st_uv,
 							cub.st_norm,
 							cub.st_indices,
 							Textures[0]));
-	
-	for(int i = 0; i < 5; i++)
-	{
-		for(int j = 0; j < 5; j++)
-		{
-			if(map[i][j] == 0)
-			{
-				objs.push_back(new Obj(50.0f*j, 0.0f, 50.0f*i,
-							cub2.st_vert,
-							cub2.st_uv,
-							cub2.st_norm,
-							cub2.st_indices,
-							Textures[0]));
 			}
-			
+			/*
 			if(map[i][j] == 1)
 			{
 				objs.push_back(new Obj(50.0f*j, -50.0f, 50.0f*i,
-							cub2.st_vert,
-							cub2.st_uv,
-							cub2.st_norm,
-							cub2.st_indices,
+							cub.st_vert,
+							cub.st_uv,
+							cub.st_norm,
+							cub.st_indices,
 							Textures[0]));
 			}
+			*/
 		}
 	}
 								
@@ -334,6 +369,9 @@ int main()
 			rm = false;
 		}
 		
+		glUniform3f(glGetUniformLocation(shader, "vEyePosition"),
+					position.x, position.y, position.z);
+		
 		tcl = 0;
 		
 		if(test)
@@ -348,7 +386,7 @@ int main()
 			
 			a->pos += a->dd;
 			
-			testColl2(a); //checkCollObjCam(a);
+			testColl(a);
 			
 			glm::vec3 dist_v3 = a->pos - position;
 			float dist_f = glm::length(dist_v3);
@@ -357,24 +395,38 @@ int main()
 			a->CreateBSphere();
 			
 			if(a->type == 1)
-			{		
-				glm::vec3 tempUp = glm::cross(g_direction, g_right);
-				a->pos = position + (g_direction*8.0f + g_right*4.0f) + (tempUp*2.0f);
-				a->rot *= position; //g_direction;
+			{
+				weapon->update();
+				a->pos = weapon->pos;
+				a->rot = weapon->rot;
+				
+				//glm::vec3 tempUp = glm::cross(g_direction, g_right);
+				//a->pos = position + (g_direction*8.0f + g_right*4.0f) + (tempUp*2.0f);
+				//a->rot *= position; //g_direction;
+			}
+			
+			if(a->type == 2)
+			{
+				a->DrawAt(a->pos.x, a->pos.y, a->pos.z);
 			}
 			
 			if(a->SphereInFrustum(a->pos.x, a->pos.y, a->pos.z, a->bsphere_radius) && dist_f <= 1000)
 			{
 				tcl++;
+				
+				if(a->type == 2) continue;
+				
 				a->DrawAt(a->pos.x, a->pos.y, a->pos.z);
 				
-				//glEnable(GL_BLEND);
-				//glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
-				//FOR(8)
+				/*
+				glEnable(GL_BLEND);
+				glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
+				FOR(8)
 				{
-				//	billboard_draw(billShader,a->aabb[i].x,a->aabb[i].y,a->aabb[i].z);
+					billboard_draw(billShader,a->aabb[i].x,a->aabb[i].y,a->aabb[i].z);
 				}
-				//glDisable(GL_BLEND);
+				glDisable(GL_BLEND);
+				*/
 			}
 			/*else
 			{
@@ -600,7 +652,10 @@ void init()
 		std::cout << e.what() << std::endl;
 	}
 	
-	shader = LoadShaders( "StandardShading.vertexshader", "StandardShading.fragmentshader" );
+	if(p_radius == 2.0f)
+		shader = LoadShaders( "main.vs", "main.fs" );
+	else
+		shader = LoadShaders( "main_shader.vs", "main_shader.fs" );
 	
 	FOR(texture_p.size())
 	{
@@ -608,10 +663,12 @@ void init()
 	}
 	
 	glUseProgram(shader);
-	GLuint LightID = glGetUniformLocation(shader, "LightPosition_worldspace");
 	
-	glm::vec3 lightPos = glm::vec3(4,7,4);
-	glUniform3f(LightID, lightPos.x, lightPos.y, lightPos.z);
+	glm::vec3 lightPos = glm::vec3(100.0f, 10.0f, 100.0f);
+	//lightPos[1] = glm::vec3(100.0f, 10.0f, 90.0f);
+	
+	glUniform3f(glGetUniformLocation(shader, "LightPosition_worldspace"),
+			lightPos.x, lightPos.y, lightPos.z);	
 }
 
 

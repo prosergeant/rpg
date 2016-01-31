@@ -49,6 +49,7 @@ int g_dir;
 
 glm::vec3 g_direction;
 glm::vec3 g_right;
+glm::vec3 g_up;
 
 bool onGround = false;
 bool sp = false;
@@ -122,50 +123,22 @@ void computeMatricesFromInputs(){
 	
 	// Move forward
 	if (glfwGetKey( window, GLFW_KEY_W ) == GLFW_PRESS){
-		if(g_dir == RIGHT)
-			g_dir = UR;
-		else if(g_dir == LEFT)
-			g_dir = UL;
-		else
-			g_dir = UP;
-			
 		position.z += direction.z * deltaTime * speed;
 		position.x += direction.x * deltaTime * speed;
 		///position += direction * deltaTime * speed;
 	}
 	// Move backward
 	if (glfwGetKey( window, GLFW_KEY_S ) == GLFW_PRESS){
-		if(g_dir == RIGHT)
-			g_dir = DR;
-		else if(g_dir == LEFT)
-			g_dir = DL;
-		else
-			g_dir = DOWN;
-		
 		position.z -= direction.z * deltaTime * speed;
 		position.x -= direction.x * deltaTime * speed;
 		///position -= direction * deltaTime * speed;
 	}
 	// Strafe right
 	if (glfwGetKey( window, GLFW_KEY_D ) == GLFW_PRESS){
-		if(g_dir == UP)
-			g_dir = UR;
-		else if(g_dir == DOWN)
-			g_dir = DR;
-		else
-			g_dir = RIGHT;
-		
 		position += right * deltaTime * speed;
 	}
 	// Strafe left
-	if (glfwGetKey( window, GLFW_KEY_A ) == GLFW_PRESS){
-		if(g_dir == UP)
-			g_dir = UL;
-		else if(g_dir == DOWN)
-			g_dir = DL;
-		else
-			g_dir = LEFT;
-		
+	if (glfwGetKey( window, GLFW_KEY_A ) == GLFW_PRESS){		
 		position -= right * deltaTime * speed;
 	}
 	// Move Up
@@ -192,9 +165,7 @@ void computeMatricesFromInputs(){
 	//if (glfwGetKey( window, GLFW_KEY_LEFT_SHIFT ) == GLFW_PRESS)speed = 160.0f;
 	
 	//if (glfwGetKey( window, GLFW_KEY_LEFT_SHIFT ) == GLFW_RELEASE)speed = 30.0f;
-	
-	//glfwSetScrollCallback(window, scroll_callback);
-	
+		
 	if (glfwGetKey( window, GLFW_KEY_GRAVE_ACCENT ) == GLFW_PRESS){
 		if(c_on){
 			st = CONSOLE;
@@ -202,24 +173,14 @@ void computeMatricesFromInputs(){
 		}
 	}
 	
-	//position.y += iy; // * deltaTime;
-
-	/*
-	if (glfwGetKey( window, GLFW_KEY_E ) == GLFW_PRESS){
-	}
-	if (glfwGetKey( window, GLFW_KEY_E ) == GLFW_RELEASE) {
-	}
-	*/
-	
 	float FoV = initialFoV;// - 5 * glfwGetMouseWheel(); // Now GLFW 3 requires setting up a callback for this. It's a bit too complicated for this beginner's tutorial, so it's disabled instead.
 
-	// Projection matrix : 45° Field of View, 4:3 ratio, display range : 0.1 unit <-> 100 units
 	ProjectionMatrix = glm::perspective(FoV, 16.0f / 9.0f, 0.1f, 20000.0f);
-	// Camera matrix
+
 	ViewMatrix       = glm::lookAt(
-								position,           // Camera is here
-								position+direction, // and looks here : at the same position, plus "direction"
-								up                  // Head is up (set to 0,-1,0 to look upside-down)
+								position,
+								position+direction,
+								up
 						   );
 						   
 
@@ -228,5 +189,6 @@ void computeMatricesFromInputs(){
 	g_deltaTime = deltaTime;
 	g_direction = direction;
 	g_right = right;
+	g_up = up;
 }
 
