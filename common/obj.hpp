@@ -562,30 +562,6 @@ void testColl(Obj* o)
 				else if(position.z < o->aabb[0].z)
 					position.z -= 0.05f;
 			}
-			/**
-		switch(g_dir)
-		{		
-		case UP:
-			position.x -= g_direction.x * g_deltaTime * speed + fabs(o->dd.x);
-			position.z -= g_direction.z * g_deltaTime * speed + fabs(o->dd.z);
-			break;
-			
-		case RIGHT:
-			position.x -= g_right.x 	* g_deltaTime * speed + fabs(o->dd.x);
-			position.z -= g_right.z 	* g_deltaTime * speed + fabs(o->dd.z);
-			break;
-			
-		case DOWN:
-			position.x += g_direction.x * g_deltaTime * speed + fabs(o->dd.x);
-			position.z += g_direction.z * g_deltaTime * speed + fabs(o->dd.z);
-			break;
-			
-		case LEFT:
-			position.x += g_right.x 	* g_deltaTime * speed + fabs(o->dd.x);
-			position.z += g_right.z 	* g_deltaTime * speed + fabs(o->dd.z);
-			break;
-		}
-		*/
 		}
 	}
 	else
@@ -661,7 +637,7 @@ cube CreatePlane(float radius, int s)
 			MapCubeToSphere( vPosition );
 
 			// Нормаль - всего лишь вектор из центра сферы.
-			//glm::vec3 vNormal = glm::normalize(vPosition); //vPosition.Normal();
+			glm::vec3 vNormal = glm::normalize(vPosition); //vPosition.Normal();
 
 			// Экструдировать сферу по её радиусу
 			vPosition *= radius;
@@ -669,10 +645,11 @@ cube CreatePlane(float radius, int s)
 			// Назначит в буффер вершин
 			/*pVertexBuffer*/vert[ y * width + x ]/*.Position*/ = vPosition;
 
-			/*pVertexBuffer*///norm[ y * width + x ]/*.Normal*/ = vNormal;
+			/*pVertexBuffer*/norm[ y * width + x ]/*.Normal*/ = vNormal;
 		}
 	}
 	
+	/*
 	for(int i = 0; i < vert.size(); i += 3)
 	{
 		glm::vec3 v1 = vert[i+2] - vert[i];
@@ -681,6 +658,7 @@ cube CreatePlane(float radius, int s)
 		glm::vec3 normal = glm::normalize(glm::cross(v1, v2));
 		norm.push_back(normal);
 	}
+	*/
 	
 	for ( int j = 0; j < height; ++j )
 	{

@@ -216,6 +216,8 @@ int main()
 							Textures[0]));
 	objs[objs.size()-1]->size = glm::vec3(0.05f, 0.05f, 0.05f);
 	objs[objs.size()-1]->type = 1;
+	
+	weapon->vert = objs[objs.size()-1]->vert;
 		
 	cube cub, plane;
 	cub = CreateSphere(43.3f, 2);
@@ -231,20 +233,24 @@ int main()
 				   plane.st_norm,
 				   plane.st_indices,
 				   Textures[0]));
-				   
-	FOR(plane.st_norm.size())
+	
 	{
-		printf("[%i].y = %f\n", i, plane.st_norm[i].y);
-		plane.st_norm[i].y = 1;
-		printf("after [%i].y = %f\n", i, plane.st_norm[i].y);
+	glm::mat4 RR = eulerAngleYXZ(0.0f, (float)M_PI, 0.0f);
+	FOR(plane.st_vert.size())
+	{
+		glm::vec4 rotatee = RR * glm::vec4(plane.st_vert[i], 1.0f);
+		glm::vec3 rr(rotatee);
+		rr.z += 500.0f;
+		plane.st_vert[i] = rr;
 	}
-				   
+	}
+	
 	objs.push_back(new Obj(0.0f, 25.0f, 0.0f,
 				   plane.st_vert,
 				   plane.st_uv,
 				   plane.st_norm,
 				   plane.st_indices,
-				   Textures[0]));
+				   Textures[1]));
 				   
 	objs[objs.size()-1]->type = 2;
 	objs[objs.size()-2]->type = 2;
@@ -256,13 +262,15 @@ int main()
 		{
 			if(map[i][j] == 0)
 			{
-				objs.push_back(new Obj(50.0f*j, 0.0f, 50.0f*i,
-							cub.st_vert,
-							cub.st_uv,
-							cub.st_norm,
-							cub.st_indices,
+				objs.push_back(new Obj(50.0f*j, -20.0f, 50.0f*i,
+							vertices[0], //cub.st_vert,
+							uvs[0], //cub.st_uv,
+							normals[0], //cub.st_norm,
+							indices[0], //cub.st_indices,
 							Textures[0]));
 			}
+			objs[objs.size()-1]->size = glm::vec3(4.0f, 4.0f, 4.0f);
+			
 			/*
 			if(map[i][j] == 1)
 			{
@@ -397,6 +405,7 @@ int main()
 			if(a->type == 1)
 			{
 				weapon->update();
+				a->vert = weapon->vert;
 				a->pos = weapon->pos;
 				a->rot = weapon->rot;
 				
@@ -664,11 +673,16 @@ void init()
 	
 	glUseProgram(shader);
 	
-	glm::vec3 lightPos = glm::vec3(100.0f, 10.0f, 100.0f);
-	//lightPos[1] = glm::vec3(100.0f, 10.0f, 90.0f);
+	glm::vec3 lightPos[5];
 	
-	glUniform3f(glGetUniformLocation(shader, "LightPosition_worldspace"),
-			lightPos.x, lightPos.y, lightPos.z);	
+	lightPos[0] = glm::vec3(100.0f, 3.0f, 100.0f);
+	lightPos[1] = glm::vec3(202.0f, 3.0f, 200.0f);
+	lightPos[2] = glm::vec3(250.0f, 3.0f, 250.0f);
+	lightPos[3] = glm::vec3(228.0f, 3.0f, 390.0f); 
+	lightPos[4] = glm::vec3(400.0f, 3.0f, 135.0f);
+	
+	glUniform3fv(glGetUniformLocation(shader, "LightPosition_worldspace"),
+			5, (const GLfloat*)lightPos); //lightPos.x, lightPos.y, lightPos.z);	
 }
 
 

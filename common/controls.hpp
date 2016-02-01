@@ -113,7 +113,7 @@ void computeMatricesFromInputs(){
 
 	*/
 	position.y += iy * deltaTime;
-	if(position.y > ground ) { iy -= 2.11f * deltaTime; } 
+	if(position.y > ground ) { iy -= 15.11f * deltaTime; } 
 	if(position.y <= ground) { position.y = ground; onGround = true; iy = 0.0f; }
 	
 	if (glfwGetKey( window, GLFW_KEY_E ) == GLFW_PRESS){
@@ -145,7 +145,7 @@ void computeMatricesFromInputs(){
 	if (glfwGetKey( window, GLFW_KEY_SPACE ) == GLFW_PRESS && onGround == true && sp == false/***/){
 		sp = true;
 		onGround = false;
-		iy = 3.0f;
+		iy = 15.0f;
 		//position.y += deltaTime * pow(speed, 8); // * speed * speed * speed * speed;
 		//position += up * deltaTime * speed;
 	}
